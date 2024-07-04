@@ -20,6 +20,7 @@ trait UnitDispatcher
 {
     use Marshal;
     use DispatchesJobs;
+    use SupportTransaction;
 
     /**
      * decorator function to be called instead of the
@@ -33,9 +34,12 @@ trait UnitDispatcher
         array $extra = []
     ): mixed {
         if (is_object($unit) && ! App::runningUnitTests()) {
-            $result = $this->dispatchSync($unit);
+            $result = $this->transaction($unit, fn($u) => $this->dispatchSync($u));
         } elseif ($arguments instanceof Request) {
-            $result = $this->dispatchSync($this->marshal($unit, $arguments, $extra));
+            $result = $this->transaction(
+                $this->marshal($unit, $arguments, $extra),
+                fn($u) => $this->dispatchSync($u),
+            );
         } else {
             if (! is_object($unit)) {
                 $unit = $this->marshal($unit, new Collection(), $arguments);
@@ -60,7 +64,7 @@ trait UnitDispatcher
                 return $this->dispatch($unit);
             }
 
-            $result = $this->dispatchSync($unit);
+            $result = $this->transaction($unit, fn($u) => $this->dispatchSync($u));
         }
 
         if ($unit instanceof Operation) {

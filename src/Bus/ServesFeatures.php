@@ -10,6 +10,7 @@ trait ServesFeatures
 {
     use Marshal;
     use DispatchesJobs;
+    use SupportTransaction;
 
     /**
      * Serve the given feature with the given arguments.
@@ -18,6 +19,9 @@ trait ServesFeatures
     {
         event(new FeatureStarted($feature, $arguments));
 
-        return $this->dispatchSync($this->marshal($feature, new Collection(), $arguments));
+        return $this->transaction(
+            $this->marshal($feature, new Collection(), $arguments),
+            fn($unit) => $this->dispatchSync($unit),
+        );
     }
 }
